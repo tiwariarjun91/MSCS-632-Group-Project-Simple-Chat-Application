@@ -57,6 +57,16 @@ func (a *API) handleMessages(w http.ResponseWriter, r *http.Request) {
 		userID := r.URL.Query().Get("user_id")
 		keyword := r.URL.Query().Get("keyword")
 
+		if userID != "" && !a.chatService.UserExists(userID) {
+			writeError(
+				w,
+				http.StatusBadRequest,
+				"unknown_user",
+				"Unknown user: "+userID,
+			)
+			return
+		}
+
 		writeJSON(w, http.StatusOK, map[string]any{
 			"messages": a.chatService.FilterMessages(userID, keyword),
 		})

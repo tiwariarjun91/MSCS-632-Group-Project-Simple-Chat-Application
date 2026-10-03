@@ -385,3 +385,41 @@ func TestSendMessageValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestGetMessagesRejectsUnknownUser(t *testing.T) {
+	handler := newTestHandler()
+
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/messages?user_id=unknown",
+		nil,
+	)
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf(
+			"expected status 400, got %d",
+			response.Code,
+		)
+	}
+
+	var body struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if body.Error.Code != "unknown_user" {
+		t.Errorf(
+			"expected error code %q, got %q",
+			"unknown_user",
+			body.Error.Code,
+		)
+	}
+}
