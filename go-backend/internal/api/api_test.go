@@ -320,3 +320,68 @@ func TestRunSimulation(t *testing.T) {
 		}
 	}
 }
+
+func TestSendMessageValidation(t *testing.T) {
+	tests := []struct {
+		name         string
+		requestBody  string
+		expectedCode string
+	}{
+		{
+			name:         "unknown user",
+			requestBody:  `{"sender_id":"unknown","recipient_id":"bob","content":"Hello"}`,
+			expectedCode: "unknown_user",
+		},
+		{
+			name:         "same user",
+			requestBody:  `{"sender_id":"alice","recipient_id":"alice","content":"Hello"}`,
+			expectedCode: "same_user",
+		},
+		{
+			name:         "empty content",
+			requestBody:  `{"sender_id":"alice","recipient_id":"bob","content":"   "}`,
+			expectedCode: "empty_content",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			handler := newTestHandler()
+
+			request := httptest.NewRequest(
+				http.MethodPost,
+				"/api/messages",
+				strings.NewReader(test.requestBody),
+			)
+			request.Header.Set("Content-Type", "application/json")
+
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf(
+					"expected status 400, got %d",
+					response.Code,
+				)
+			}
+
+			var body struct {
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
+			}
+
+			if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+				t.Fatalf("failed to decode response: %v", err)
+			}
+
+			if body.Error.Code != test.expectedCode {
+				t.Errorf(
+					"expected error code %q, got %q",
+					test.expectedCode,
+					body.Error.Code,
+				)
+			}
+		})
+	}
+}
