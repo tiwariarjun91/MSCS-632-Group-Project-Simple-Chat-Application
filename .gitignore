@@ -1,0 +1,13 @@
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Rust build output
+rust/target/
+
+# Local logs and editor files
+*.log
+.idea/
+.vscode/
+*.swp
+*~
