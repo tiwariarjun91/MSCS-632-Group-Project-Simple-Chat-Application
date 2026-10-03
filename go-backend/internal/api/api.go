@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"mime"
 	"net/http"
 
 	"github.com/tiwariarjun91/MSCS-632-Group-Project-Simple-Chat-Application/go-backend/internal/chat"
@@ -28,6 +29,10 @@ func (a *API) Routes() http.Handler {
 	mux.HandleFunc("/api/messages", a.handleMessages)
 	mux.HandleFunc("/api/conversation", a.handleConversation)
 	mux.HandleFunc("/api/simulation", a.handleSimulation)
+
+	// Unknown API routes should return JSON rather than falling through
+	// to the frontend file server.
+	mux.HandleFunc("/api/", a.handleUnknownAPI)
 
 	// Serve the shared frontend.
 	mux.Handle("/", http.FileServer(http.Dir("../frontend")))
@@ -85,7 +90,10 @@ func (a *API) handleMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) handleSendMessage(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" {
+	contentType := r.Header.Get("Content-Type")
+
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil || mediaType != "application/json" {
 		writeError(
 			w,
 			http.StatusUnsupportedMediaType,
@@ -184,6 +192,26 @@ func (a *API) handleConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !a.chatService.UserExists(userID) {
+		writeError(
+			w,
+			http.StatusBadRequest,
+			"unknown_user",
+			"Unknown user: "+userID,
+		)
+		return
+	}
+
+	if !a.chatService.UserExists(otherUserID) {
+		writeError(
+			w,
+			http.StatusBadRequest,
+			"unknown_user",
+			"Unknown user: "+otherUserID,
+		)
+		return
+	}
+
 	messages := a.chatService.GetConversation(userID, otherUserID)
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -217,6 +245,15 @@ func (a *API) handleSimulation(w http.ResponseWriter, r *http.Request) {
 		"accepted_count": len(messages),
 		"messages":       messages,
 	})
+}
+
+func (a *API) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
+	writeError(
+		w,
+		http.StatusNotFound,
+		"not_found",
+		"The requested API route was not found.",
+	)
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
