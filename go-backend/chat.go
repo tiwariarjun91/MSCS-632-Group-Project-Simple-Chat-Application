@@ -28,3 +28,14 @@ func NewChatService() *ChatService {
 		messages: make([]Message, 0),
 	}
 }
+
+// GetUsers returns all users registered in the chat service.
+func (s *ChatService) GetUsers() []User {
+	users := make([]User, 0, len(s.users))
+
+	for _, user := range s.users {
+		users = append(users, user)
+	}
+
+	return users
+}
