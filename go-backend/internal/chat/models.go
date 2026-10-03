@@ -1,4 +1,4 @@
-package main
+package chat
 
 // User represents a participant in the chat application.
 type User struct {

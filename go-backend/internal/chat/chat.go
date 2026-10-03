@@ -1,4 +1,4 @@
-package main
+package chat
 
 import (
 	"fmt"
@@ -99,7 +99,7 @@ func (s *ChatService) SendMessage(senderID, recipientID, content string) (Messag
 	return message, nil
 }
 
-// GetMessages returns the stored message history.
+// GetMessages returns a copy of the stored message history.
 func (s *ChatService) GetMessages() []Message {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

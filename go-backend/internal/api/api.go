@@ -1,17 +1,19 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/tiwariarjun91/MSCS-632-Group-Project-Simple-Chat-Application/go-backend/internal/chat"
 )
 
 // API connects HTTP requests to the chat service.
 type API struct {
-	chatService *ChatService
+	chatService *chat.ChatService
 }
 
 // NewAPI creates an API backed by the provided chat service.
-func NewAPI(chatService *ChatService) *API {
+func NewAPI(chatService *chat.ChatService) *API {
 	return &API{
 		chatService: chatService,
 	}
@@ -34,9 +36,12 @@ func (a *API) Routes() http.Handler {
 
 func (a *API) handleUsers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed,
+		writeError(
+			w,
+			http.StatusMethodNotAllowed,
 			"method_not_allowed",
-			"This HTTP method is not supported for this route.")
+			"This HTTP method is not supported for this route.",
+		)
 		return
 	}
 
@@ -59,17 +64,23 @@ func (a *API) handleMessages(w http.ResponseWriter, r *http.Request) {
 		a.handleSendMessage(w, r)
 
 	default:
-		writeError(w, http.StatusMethodNotAllowed,
+		writeError(
+			w,
+			http.StatusMethodNotAllowed,
 			"method_not_allowed",
-			"This HTTP method is not supported for this route.")
+			"This HTTP method is not supported for this route.",
+		)
 	}
 }
 
 func (a *API) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") != "application/json" {
-		writeError(w, http.StatusUnsupportedMediaType,
+		writeError(
+			w,
+			http.StatusUnsupportedMediaType,
 			"unsupported_media_type",
-			"Send the message with Content-Type: application/json.")
+			"Send the message with Content-Type: application/json.",
+		)
 		return
 	}
 
@@ -80,9 +91,12 @@ func (a *API) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		writeError(w, http.StatusBadRequest,
+		writeError(
+			w,
+			http.StatusBadRequest,
 			"invalid_request",
-			"Provide valid JSON with sender_id, recipient_id, and content.")
+			"Provide valid JSON with sender_id, recipient_id, and content.",
+		)
 		return
 	}
 
@@ -93,9 +107,12 @@ func (a *API) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		writeError(w, http.StatusBadRequest,
+		writeError(
+			w,
+			http.StatusBadRequest,
 			"invalid_request",
-			err.Error())
+			err.Error(),
+		)
 		return
 	}
 
@@ -106,9 +123,12 @@ func (a *API) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) handleConversation(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		writeError(w, http.StatusMethodNotAllowed,
+		writeError(
+			w,
+			http.StatusMethodNotAllowed,
 			"method_not_allowed",
-			"This HTTP method is not supported for this route.")
+			"This HTTP method is not supported for this route.",
+		)
 		return
 	}
 
@@ -116,9 +136,12 @@ func (a *API) handleConversation(w http.ResponseWriter, r *http.Request) {
 	otherUserID := r.URL.Query().Get("other_user_id")
 
 	if userID == "" || otherUserID == "" {
-		writeError(w, http.StatusBadRequest,
+		writeError(
+			w,
+			http.StatusBadRequest,
 			"invalid_request",
-			"Provide both user_id and other_user_id.")
+			"Provide both user_id and other_user_id.",
+		)
 		return
 	}
 
@@ -131,17 +154,23 @@ func (a *API) handleConversation(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) handleSimulation(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeError(w, http.StatusMethodNotAllowed,
+		writeError(
+			w,
+			http.StatusMethodNotAllowed,
 			"method_not_allowed",
-			"This HTTP method is not supported for this route.")
+			"This HTTP method is not supported for this route.",
+		)
 		return
 	}
 
 	messages, err := a.chatService.RunSimulation()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError,
+		writeError(
+			w,
+			http.StatusInternalServerError,
 			"internal_error",
-			"The backend could not complete the request.")
+			"The backend could not complete the request.",
+		)
 		return
 	}
 
