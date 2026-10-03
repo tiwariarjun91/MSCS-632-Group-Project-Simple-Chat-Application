@@ -124,3 +124,138 @@ func TestGetMessages(t *testing.T) {
 		)
 	}
 }
+
+func TestGetConversation(t *testing.T) {
+	handler := newTestHandler()
+
+	messages := []string{
+		`{"sender_id":"alice","recipient_id":"bob","content":"Hi Bob"}`,
+		`{"sender_id":"bob","recipient_id":"alice","content":"Hi Alice"}`,
+		`{"sender_id":"charlie","recipient_id":"alice","content":"Hi Alice from Charlie"}`,
+	}
+
+	for _, message := range messages {
+		request := httptest.NewRequest(
+			http.MethodPost,
+			"/api/messages",
+			strings.NewReader(message),
+		)
+		request.Header.Set("Content-Type", "application/json")
+
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+
+		if response.Code != http.StatusCreated {
+			t.Fatalf("expected send status 201, got %d", response.Code)
+		}
+	}
+
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/conversation?user_id=alice&other_user_id=bob",
+		nil,
+	)
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	var body struct {
+		Messages []chat.Message `json:"messages"`
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if len(body.Messages) != 2 {
+		t.Fatalf("expected 2 conversation messages, got %d", len(body.Messages))
+	}
+
+	for _, message := range body.Messages {
+		inConversation :=
+			(message.SenderID == "alice" && message.RecipientID == "bob") ||
+				(message.SenderID == "bob" && message.RecipientID == "alice")
+
+		if !inConversation {
+			t.Errorf(
+				"unexpected message in Alice-Bob conversation: %s -> %s",
+				message.SenderID,
+				message.RecipientID,
+			)
+		}
+	}
+}
+
+
+func TestFilterMessages(t *testing.T) {
+	handler := newTestHandler()
+
+	messages := []string{
+		`{"sender_id":"alice","recipient_id":"bob","content":"Meeting at 3"}`,
+		`{"sender_id":"bob","recipient_id":"charlie","content":"Lunch at 1"}`,
+		`{"sender_id":"charlie","recipient_id":"alice","content":"Meeting tomorrow"}`,
+	}
+
+	for _, message := range messages {
+		request := httptest.NewRequest(
+			http.MethodPost,
+			"/api/messages",
+			strings.NewReader(message),
+		)
+		request.Header.Set("Content-Type", "application/json")
+
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+
+		if response.Code != http.StatusCreated {
+			t.Fatalf("expected send status 201, got %d", response.Code)
+		}
+	}
+
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/messages?user_id=alice&keyword=meeting",
+		nil,
+	)
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	var body struct {
+		Messages []chat.Message `json:"messages"`
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if len(body.Messages) != 2 {
+		t.Fatalf("expected 2 matching messages, got %d", len(body.Messages))
+	}
+
+	for _, message := range body.Messages {
+		involvesAlice :=
+			message.SenderID == "alice" ||
+				message.RecipientID == "alice"
+
+		containsMeeting := strings.Contains(
+			strings.ToLower(message.Content),
+			"meeting",
+		)
+
+		if !involvesAlice || !containsMeeting {
+			t.Errorf(
+				"unexpected filtered message: %+v",
+				message,
+			)
+		}
+	}
+}
