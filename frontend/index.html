@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Simple Chat | MSCS 632</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to chat</a>
+
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">MSCS 632 · Rust &amp; Go</p>
+      <h1>Simple Chat</h1>
+      <p>A local conversation between simulated users.</p>
+    </div>
+    <p id="connection-status" class="connection-status" role="status">Chat is not connected yet.</p>
+  </header>
+
+  <main id="main-content" class="app-layout">
+    <noscript>
+      <p class="notice">Enable JavaScript to load users, send messages, and search conversations.</p>
+    </noscript>
+
+    <section class="panel conversation-panel" aria-labelledby="conversation-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Your conversation</p>
+          <h2 id="conversation-title">Send a message</h2>
+        </div>
+        <button id="refresh-conversation" type="button" disabled>Refresh conversation</button>
+      </div>
+
+      <fieldset id="identity-controls" disabled>
+        <legend>Choose participants</legend>
+        <div class="form-grid">
+          <div class="field">
+            <label for="active-user">Send as</label>
+            <select id="active-user" name="active-user" required>
+              <option value="">Waiting for users</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="recipient">Send to</label>
+            <select id="recipient" name="recipient" required>
+              <option value="">Choose another user</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <p id="conversation-summary" class="muted">Choose two users to view their conversation.</p>
+      <ol id="conversation-messages" class="message-list" aria-label="Conversation messages"></ol>
+      <p id="conversation-empty" class="empty-state">Messages will appear here after you connect.</p>
+
+      <form id="message-form">
+        <fieldset id="composer-controls" disabled>
+          <legend>Compose a message</legend>
+          <label for="message-content">Message</label>
+          <textarea id="message-content" name="content" rows="3" required
+            placeholder="Write a message…" aria-describedby="message-help"></textarea>
+          <div class="composer-footer">
+            <p id="message-help" class="muted">Your message is saved for this session when you select Send.</p>
+            <button id="send-message" class="button-primary" type="submit">Send message</button>
+          </div>
+        </fieldset>
+      </form>
+      <p id="message-status" class="status-message" role="status" aria-atomic="true"></p>
+    </section>
+
+    <section class="panel history-panel" aria-labelledby="history-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Across all conversations</p>
+          <h2 id="history-title">Message history</h2>
+        </div>
+      </div>
+      <form id="search-form">
+        <fieldset id="search-controls" disabled>
+          <legend>Filter and search history</legend>
+          <div class="field">
+            <label for="filter-user">Participant</label>
+            <select id="filter-user" name="user_id">
+              <option value="">All users</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="search-keyword">Keyword</label>
+            <input id="search-keyword" name="keyword" type="search"
+              placeholder="Try meeting" aria-describedby="search-help">
+          </div>
+          <p id="search-help" class="muted">Find messages sent or received by a participant. Keyword matching ignores English letter case.</p>
+          <div class="button-row">
+            <button id="search-messages" class="button-primary" type="submit">Search history</button>
+            <button id="clear-search" type="button">Clear filters</button>
+          </div>
+        </fieldset>
+      </form>
+      <p id="history-status" class="status-message" role="status" aria-atomic="true"></p>
+      <ol id="history-messages" class="message-list" aria-label="History results"></ol>
+      <p id="history-empty" class="empty-state">History will appear here after you connect.</p>
+    </section>
+
+    <section class="panel simulation-panel" aria-labelledby="simulation-title">
+      <div>
+        <p class="eyebrow">Explore concurrency</p>
+        <h2 id="simulation-title">Three users. Six messages.</h2>
+        <p>Alice, Bob, and Charlie each send two messages concurrently. Their messages are added to the same session history.</p>
+      </div>
+      <button id="run-simulation" class="button-primary" type="button" disabled>Run simulation</button>
+      <p id="simulation-status" class="status-message" role="status" aria-atomic="true"></p>
+    </section>
+
+    <div id="error-message" class="error-message" role="alert" aria-atomic="true" hidden></div>
+  </main>
+
+  <footer class="site-footer">
+    <p>Local demo · No accounts required · History clears when the backend restarts.</p>
+  </footer>
+
+  <!-- Browser code clones this template and inserts user content using textContent. -->
+  <template id="message-template">
+    <li class="message-card">
+      <div class="message-meta">
+        <span class="message-participants"></span>
+        <time class="message-time"></time>
+      </div>
+      <p class="message-content"></p>
+      <span class="message-id"></span>
+    </li>
+  </template>
+</body>
+</html>
