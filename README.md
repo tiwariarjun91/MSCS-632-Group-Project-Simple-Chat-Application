@@ -1,17 +1,9 @@
 # Simple Chat Application in Rust and Go
 
-This MSCS 632 group project implements the same local chat application in Rust
-and Go. Both backends use the shared browser interface in `frontend/`, allowing
-the project to compare the languages without changing the user experience.
-
-## Project status
-
-- **Rust backend:** Core Day 2 functionality is implemented and tested.
-- **Go backend:** Core Day 2 functionality is implemented and tested.
-- **Shared frontend:** Implemented and integrated with both backends.
-
-Both implementations expose the same HTTP API and use the same user IDs and
-browser interface.
+This repository contains equivalent Rust and Go implementations of a local chat
+service. Both backends expose the same HTTP API and serve the shared browser
+interface in `frontend/`, making their behavior directly comparable without
+changing the user experience.
 
 ## Features
 
@@ -225,16 +217,7 @@ queries require `user_id` and `other_user_id`.
 - Channels collect results from concurrent simulation workers.
 - Go's race detector helps verify concurrent access to shared state.
 
-## Current limitations
-
-- The application is local and does not provide internet-based messaging.
-- Users are fixed to Alice, Bob, and Charlie.
-- History is not persisted to a database or file.
-- Authentication, attachments, and group conversations are outside the project scope.
-- Concurrent scheduling may change simulation interleaving between runs, while
-  message IDs remain unique.
-
-## Team responsibilities
+## Contributors
 
 - **Ruthwik Pala:** Rust backend, Rust tests, Rust/frontend integration, and Rust
   build/run/test documentation.
