@@ -1,6 +1,6 @@
 //! Owns session state and applies the rules for accepting messages.
 //!
-//! A single owner (the forthcoming channel-driven worker) will call this service.
+//! A single owner (the channel-driven worker) calls this service.
 //! Mutations require `&mut self`; queries borrow state without exposing mutation.
 
 use std::collections::HashMap;
