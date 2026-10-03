@@ -33,7 +33,7 @@ browser interface.
 │   ├── index.html       Shared browser interface
 │   ├── styles.css       Responsive presentation
 │   └── app.js           API requests and UI behavior
-├── rust/
+├── rust-backend/
 │   ├── Cargo.toml       Rust package and dependencies
 │   ├── Cargo.lock       Locked dependency versions
 │   └── src/
@@ -82,7 +82,7 @@ source "$HOME/.cargo/env"
 From the repository root:
 
 ```bash
-cargo run --manifest-path rust/Cargo.toml
+cargo run --manifest-path rust-backend/Cargo.toml
 ```
 
 Open `http://127.0.0.1:8080` in a browser. The backend serves the shared frontend
@@ -138,19 +138,19 @@ message.
 Run all automated tests:
 
 ```bash
-cargo test --manifest-path rust/Cargo.toml --locked
+cargo test --manifest-path rust-backend/Cargo.toml --locked
 ```
 
 Check formatting without changing files:
 
 ```bash
-cargo fmt --manifest-path rust/Cargo.toml -- --check
+cargo fmt --manifest-path rust-backend/Cargo.toml -- --check
 ```
 
 Run Clippy and treat warnings as errors:
 
 ```bash
-cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
+cargo clippy --manifest-path rust-backend/Cargo.toml --all-targets -- -D warnings
 ```
 
 The Rust implementation includes tests covering message validation, storage,
