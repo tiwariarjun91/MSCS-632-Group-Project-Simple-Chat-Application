@@ -5,3 +5,26 @@ type ChatService struct {
 	users    map[string]User
 	messages []Message
 }
+
+// NewChatService creates a chat service with the default users.
+func NewChatService() *ChatService {
+	users := map[string]User{
+		"alice": {
+			UserID:      "alice",
+			DisplayName: "Alice",
+		},
+		"bob": {
+			UserID:      "bob",
+			DisplayName: "Bob",
+		},
+		"charlie": {
+			UserID:      "charlie",
+			DisplayName: "Charlie",
+		},
+	}
+
+	return &ChatService{
+		users:    users,
+		messages: make([]Message, 0),
+	}
+}
