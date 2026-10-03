@@ -127,10 +127,10 @@ mod tests {
     use super::*;
     use tokio::task::JoinSet;
 
-    fn message(sender_id: u64, recipient_id: u64, content: &str) -> SendMessageRequest {
+    fn message(sender_id: &str, recipient_id: &str, content: &str) -> SendMessageRequest {
         SendMessageRequest {
-            sender_id,
-            recipient_id,
+            sender_id: sender_id.to_owned(),
+            recipient_id: recipient_id.to_owned(),
             content: content.to_owned(),
         }
     }
@@ -143,7 +143,7 @@ mod tests {
             let client = handle.clone();
             senders.spawn(async move {
                 client
-                    .send(message(1, 2, &format!("Message {index}")))
+                    .send(message("alice", "bob", &format!("Message {index}")))
                     .await
                     .unwrap()
             });
@@ -169,14 +169,17 @@ mod tests {
         let (handle, worker) = start();
         assert_eq!(handle.users().await.unwrap().len(), 3);
         assert_eq!(
-            handle.send(message(1, 1, "Invalid")).await,
+            handle.send(message("alice", "alice", "Invalid")).await,
             Err(WorkerError::Chat(ChatError::SameUser))
         );
-        let accepted = handle.send(message(1, 2, "Meeting at 3")).await.unwrap();
+        let accepted = handle
+            .send(message("alice", "bob", "Meeting at 3"))
+            .await
+            .unwrap();
         assert_eq!(accepted.message_id, 1);
         let filtered = handle
             .history(HistoryQuery {
-                user_id: Some(2),
+                user_id: Some("bob".to_owned()),
                 keyword: Some("meeting".to_owned()),
             })
             .await
@@ -184,8 +187,8 @@ mod tests {
         assert_eq!(filtered, vec![accepted.clone()]);
         let conversation = handle
             .conversation(ConversationQuery {
-                user_id: 2,
-                other_user_id: 1,
+                user_id: "bob".to_owned(),
+                other_user_id: "alice".to_owned(),
             })
             .await
             .unwrap();
@@ -211,7 +214,7 @@ mod tests {
         handle
             .sender
             .send(Command::Send(
-                message(1, 2, "Caller disconnected"),
+                message("alice", "bob", "Caller disconnected"),
                 abandoned_reply,
             ))
             .await

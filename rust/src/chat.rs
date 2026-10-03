@@ -46,18 +46,19 @@ impl fmt::Display for ChatError {
 impl std::error::Error for ChatError {}
 
 pub struct ChatService {
-    users: HashMap<u64, User>,
+    users: HashMap<String, User>,
     history: Vec<Message>,
     next_message_id: u64,
 }
 
 impl ChatService {
     pub fn new() -> Self {
-        let users = [(1, "Alice"), (2, "Bob"), (3, "Charlie")]
+        let users = [("alice", "Alice"), ("bob", "Bob"), ("charlie", "Charlie")]
             .into_iter()
             .map(|(user_id, name)| {
+                let user_id = user_id.to_owned();
                 (
-                    user_id,
+                    user_id.clone(),
                     User {
                         user_id,
                         display_name: name.to_owned(),
@@ -76,12 +77,12 @@ impl ChatService {
     /// HashMap iteration is unordered, so sort the owned response by user ID.
     pub fn users(&self) -> Vec<User> {
         let mut users: Vec<User> = self.users.values().cloned().collect();
-        users.sort_by_key(|user| user.user_id);
+        users.sort_by(|left, right| left.user_id.cmp(&right.user_id));
         users
     }
 
-    pub fn require_user(&self, user_id: u64) -> Result<(), ChatError> {
-        if self.users.contains_key(&user_id) {
+    pub fn require_user(&self, user_id: &str) -> Result<(), ChatError> {
+        if self.users.contains_key(user_id) {
             Ok(())
         } else {
             Err(ChatError::UnknownUser)
@@ -89,7 +90,7 @@ impl ChatService {
     }
 
     /// Shared validation for sending and for querying a conversation.
-    pub fn require_participants(&self, first: u64, second: u64) -> Result<(), ChatError> {
+    pub fn require_participants(&self, first: &str, second: &str) -> Result<(), ChatError> {
         self.require_user(first)?;
         self.require_user(second)?;
         if first == second {
@@ -105,7 +106,7 @@ impl ChatService {
 
     /// Validate fully before changing state or consuming an ID.
     pub fn send(&mut self, request: SendMessageRequest) -> Result<Message, ChatError> {
-        self.require_participants(request.sender_id, request.recipient_id)?;
+        self.require_participants(&request.sender_id, &request.recipient_id)?;
         if request.content.trim().is_empty() {
             return Err(ChatError::EmptyContent);
         }
@@ -146,10 +147,10 @@ impl Default for ChatService {
 mod tests {
     use super::*;
 
-    fn request(sender_id: u64, recipient_id: u64, content: &str) -> SendMessageRequest {
+    fn request(sender_id: &str, recipient_id: &str, content: &str) -> SendMessageRequest {
         SendMessageRequest {
-            sender_id,
-            recipient_id,
+            sender_id: sender_id.to_owned(),
+            recipient_id: recipient_id.to_owned(),
             content: content.to_owned(),
         }
     }
@@ -160,21 +161,29 @@ mod tests {
         let users = chat.users();
         let entries: Vec<_> = users
             .iter()
-            .map(|user| (user.user_id, user.display_name.as_str()))
+            .map(|user| (user.user_id.as_str(), user.display_name.as_str()))
             .collect();
-        assert_eq!(entries, vec![(1, "Alice"), (2, "Bob"), (3, "Charlie")]);
+        assert_eq!(
+            entries,
+            vec![("alice", "Alice"), ("bob", "Bob"), ("charlie", "Charlie")]
+        );
         assert!(chat.history().is_empty());
     }
 
     #[test]
     fn stores_messages_in_order_with_timestamps_and_preserves_content() {
         let mut chat = ChatService::new();
-        let first = chat.send(request(1, 2, "  Meeting at 3  ")).unwrap();
-        let second = chat.send(request(2, 1, "See you there!")).unwrap();
+        let first = chat
+            .send(request("alice", "bob", "  Meeting at 3  "))
+            .unwrap();
+        let second = chat
+            .send(request("bob", "alice", "See you there!"))
+            .unwrap();
 
         assert_eq!(first.message_id, 1);
         assert_eq!(second.message_id, 2);
-        assert_eq!((first.sender_id, first.recipient_id), (1, 2));
+        assert_eq!(first.sender_id, "alice");
+        assert_eq!(first.recipient_id, "bob");
         assert_eq!(first.content, "  Meeting at 3  ");
         assert!(first.timestamp_ms > 0);
         assert_eq!(chat.history(), &[first, second]);
@@ -183,24 +192,34 @@ mod tests {
     #[test]
     fn rejected_messages_leave_history_and_next_id_unchanged() {
         let mut chat = ChatService::new();
-        let first = chat.send(request(1, 2, "Existing message")).unwrap();
+        let first = chat
+            .send(request("alice", "bob", "Existing message"))
+            .unwrap();
         let cases = [
-            (request(99, 2, "Hello"), ChatError::UnknownUser),
-            (request(1, 99, "Hello"), ChatError::UnknownUser),
-            (request(0, 2, "Hello"), ChatError::UnknownUser),
-            (request(1, 1, "Hello"), ChatError::SameUser),
-            (request(1, 2, ""), ChatError::EmptyContent),
-            (request(1, 2, " \n\t\u{2003}"), ChatError::EmptyContent),
+            (request("unknown", "bob", "Hello"), ChatError::UnknownUser),
+            (request("alice", "unknown", "Hello"), ChatError::UnknownUser),
+            (request("", "bob", "Hello"), ChatError::UnknownUser),
+            (request("alice", "alice", "Hello"), ChatError::SameUser),
+            (request("alice", "bob", ""), ChatError::EmptyContent),
+            (
+                request("alice", "bob", " \n\t\u{2003}"),
+                ChatError::EmptyContent,
+            ),
             // User existence takes precedence over other validation failures.
-            (request(99, 99, ""), ChatError::UnknownUser),
-            (request(1, 1, ""), ChatError::SameUser),
+            (request("unknown", "unknown", ""), ChatError::UnknownUser),
+            (request("alice", "alice", ""), ChatError::SameUser),
         ];
 
         for (input, expected) in cases {
             assert_eq!(chat.send(input), Err(expected));
             assert_eq!(chat.history(), std::slice::from_ref(&first));
         }
-        assert_eq!(chat.send(request(2, 3, "Valid")).unwrap().message_id, 2);
+        assert_eq!(
+            chat.send(request("bob", "charlie", "Valid"))
+                .unwrap()
+                .message_id,
+            2
+        );
     }
 
     #[test]
@@ -208,7 +227,7 @@ mod tests {
         let mut chat = ChatService::new();
         chat.next_message_id = u64::MAX;
         assert_eq!(
-            chat.send(request(1, 2, "Hello")),
+            chat.send(request("alice", "bob", "Hello")),
             Err(ChatError::IdExhausted)
         );
         assert!(chat.history().is_empty());

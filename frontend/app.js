@@ -100,8 +100,8 @@
     const previous = recipient.value;
     recipient.replaceChildren();
     for (const user of state.users) {
-      if (String(user.user_id) !== activeUser.value) {
-        recipient.add(new Option(user.display_name, String(user.user_id)));
+      if (user.user_id !== activeUser.value) {
+        recipient.add(new Option(user.display_name, user.user_id));
       }
     }
     if ([...recipient.options].some((option) => option.value === previous)) {
@@ -111,8 +111,8 @@
 
   async function loadConversation() {
     const version = ++state.conversationVersion;
-    const sender = Number(activeUser.value);
-    const other = Number(recipient.value);
+    const sender = activeUser.value;
+    const other = recipient.value;
     if (!sender || !other) return;
     const query = new URLSearchParams({ user_id: sender, other_user_id: other });
     try {
@@ -169,8 +169,8 @@
       activeUser.replaceChildren();
       element("filter-user").replaceChildren(new Option("All users", ""));
       for (const user of state.users) {
-        activeUser.add(new Option(user.display_name, String(user.user_id)));
-        element("filter-user").add(new Option(user.display_name, String(user.user_id)));
+        activeUser.add(new Option(user.display_name, user.user_id));
+        element("filter-user").add(new Option(user.display_name, user.user_id));
       }
       populateRecipients();
       state.ready = true;
@@ -220,7 +220,7 @@
     try {
       const data = await api("/api/messages", {
         method: "POST",
-        body: { sender_id: Number(activeUser.value), recipient_id: Number(recipient.value), content: content.value },
+        body: { sender_id: activeUser.value, recipient_id: recipient.value, content: content.value },
       });
       accepted = true;
       content.value = "";

@@ -41,15 +41,19 @@ impl std::error::Error for SimulationError {
 /// aborts its tasks, but commands already queued at the worker may still complete.
 pub async fn run(handle: &ChatHandle) -> Result<SimulationResponse, SimulationError> {
     let mut tasks = JoinSet::new();
-    for (sender_id, recipient_id, name) in [(1, 2, "Alice"), (2, 3, "Bob"), (3, 1, "Charlie")] {
+    for (sender_id, recipient_id, name) in [
+        ("alice", "bob", "Alice"),
+        ("bob", "charlie", "Bob"),
+        ("charlie", "alice", "Charlie"),
+    ] {
         let client = handle.clone();
         tasks.spawn(async move {
             let mut accepted = Vec::with_capacity(2);
             for number in 1..=2 {
                 let message = client
                     .send(SendMessageRequest {
-                        sender_id,
-                        recipient_id,
+                        sender_id: sender_id.to_owned(),
+                        recipient_id: recipient_id.to_owned(),
                         content: format!("Simulation {name} {number}"),
                     })
                     .await?;
@@ -106,7 +110,11 @@ mod tests {
             .collect();
         assert_eq!(ids, vec![1, 2, 3, 4, 5, 6]);
 
-        for (sender_id, recipient_id, name) in [(1, 2, "Alice"), (2, 3, "Bob"), (3, 1, "Charlie")] {
+        for (sender_id, recipient_id, name) in [
+            ("alice", "bob", "Alice"),
+            ("bob", "charlie", "Bob"),
+            ("charlie", "alice", "Charlie"),
+        ] {
             let sent: Vec<_> = result
                 .messages
                 .iter()
@@ -129,8 +137,8 @@ mod tests {
         let (handle, worker) = worker::start();
         let original = handle
             .send(SendMessageRequest {
-                sender_id: 1,
-                recipient_id: 2,
+                sender_id: "alice".to_owned(),
+                recipient_id: "bob".to_owned(),
                 content: "Existing message".to_owned(),
             })
             .await
@@ -140,8 +148,8 @@ mod tests {
             run(&handle),
             run(&handle),
             handle.send(SendMessageRequest {
-                sender_id: 2,
-                recipient_id: 1,
+                sender_id: "bob".to_owned(),
+                recipient_id: "alice".to_owned(),
                 content: "Concurrent normal message".to_owned(),
             })
         );

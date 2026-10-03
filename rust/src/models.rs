@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// A simulated user with an ID that remains stable for the application session.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct User {
-    pub user_id: u64,
+    pub user_id: String,
     pub display_name: String,
 }
 
@@ -16,8 +16,8 @@ pub struct User {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Message {
     pub message_id: u64,
-    pub sender_id: u64,
-    pub recipient_id: u64,
+    pub sender_id: String,
+    pub recipient_id: String,
     pub content: String,
     /// Milliseconds since the Unix epoch, recorded at backend acceptance.
     pub timestamp_ms: u64,
@@ -26,23 +26,23 @@ pub struct Message {
 /// The JSON body for sending a message, before service-level validation.
 #[derive(Debug, Deserialize)]
 pub struct SendMessageRequest {
-    pub sender_id: u64,
-    pub recipient_id: u64,
+    pub sender_id: String,
+    pub recipient_id: String,
     pub content: String,
 }
 
 /// Optional history filters. When both are present, both must match.
 #[derive(Debug, Default, Deserialize)]
 pub struct HistoryQuery {
-    pub user_id: Option<u64>,
+    pub user_id: Option<String>,
     pub keyword: Option<String>,
 }
 
 /// Required participants for a conversation in either direction.
 #[derive(Debug, Deserialize)]
 pub struct ConversationQuery {
-    pub user_id: u64,
-    pub other_user_id: u64,
+    pub user_id: String,
+    pub other_user_id: String,
 }
 
 #[derive(Debug, Serialize)]

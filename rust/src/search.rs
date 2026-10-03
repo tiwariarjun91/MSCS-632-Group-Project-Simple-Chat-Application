@@ -12,7 +12,7 @@ use crate::models::{ConversationQuery, HistoryQuery, Message};
 /// when supplied. ASCII letters are case-insensitive; other characters are
 /// literal. An empty keyword matches all content, and whitespace is preserved.
 pub fn history(chat: &ChatService, query: &HistoryQuery) -> Result<Vec<Message>, ChatError> {
-    if let Some(user_id) = query.user_id {
+    if let Some(user_id) = query.user_id.as_deref() {
         chat.require_user(user_id)?;
     }
     let keyword = query.keyword.as_ref().map(|text| text.to_ascii_lowercase());
@@ -20,7 +20,7 @@ pub fn history(chat: &ChatService, query: &HistoryQuery) -> Result<Vec<Message>,
     let messages = chat
         .history()
         .iter()
-        .filter(|message| match query.user_id {
+        .filter(|message| match query.user_id.as_deref() {
             Some(user_id) => message.sender_id == user_id || message.recipient_id == user_id,
             None => true,
         })
@@ -40,7 +40,7 @@ pub fn conversation(
     chat: &ChatService,
     query: &ConversationQuery,
 ) -> Result<Vec<Message>, ChatError> {
-    chat.require_participants(query.user_id, query.other_user_id)?;
+    chat.require_participants(&query.user_id, &query.other_user_id)?;
 
     Ok(chat
         .history()
@@ -62,14 +62,14 @@ mod tests {
     fn sample_chat() -> ChatService {
         let mut chat = ChatService::new();
         for (sender_id, recipient_id, content) in [
-            (1, 2, "Meeting at 3"),
-            (2, 1, "See you there"),
-            (3, 1, "MEETING notes"),
-            (2, 3, "Lunch plans"),
+            ("alice", "bob", "Meeting at 3"),
+            ("bob", "alice", "See you there"),
+            ("charlie", "alice", "MEETING notes"),
+            ("bob", "charlie", "Lunch plans"),
         ] {
             chat.send(SendMessageRequest {
-                sender_id,
-                recipient_id,
+                sender_id: sender_id.to_owned(),
+                recipient_id: recipient_id.to_owned(),
                 content: content.to_owned(),
             })
             .unwrap();
@@ -81,9 +81,9 @@ mod tests {
         messages.iter().map(|message| message.message_id).collect()
     }
 
-    fn query(user_id: Option<u64>, keyword: Option<&str>) -> HistoryQuery {
+    fn query(user_id: Option<&str>, keyword: Option<&str>) -> HistoryQuery {
         HistoryQuery {
-            user_id,
+            user_id: user_id.map(str::to_owned),
             keyword: keyword.map(str::to_owned),
         }
     }
@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn participant_filter_matches_sender_and_recipient() {
         let chat = sample_chat();
-        let results = history(&chat, &query(Some(3), None)).unwrap();
+        let results = history(&chat, &query(Some("charlie"), None)).unwrap();
         assert_eq!(ids(&results), vec![3, 4]);
     }
 
@@ -110,7 +110,7 @@ mod tests {
         let chat = sample_chat();
         let results = history(&chat, &query(None, Some("eEtInG"))).unwrap();
         assert_eq!(ids(&results), vec![1, 3]);
-        let combined = history(&chat, &query(Some(2), Some("meeting"))).unwrap();
+        let combined = history(&chat, &query(Some("bob"), Some("meeting"))).unwrap();
         assert_eq!(ids(&combined), vec![1]);
         assert!(
             history(&chat, &query(None, Some("missing")))
@@ -139,8 +139,8 @@ mod tests {
     fn non_ascii_characters_match_literally() {
         let mut chat = ChatService::new();
         chat.send(SendMessageRequest {
-            sender_id: 1,
-            recipient_id: 2,
+            sender_id: "alice".to_owned(),
+            recipient_id: "bob".to_owned(),
             content: "CAFÉ".to_owned(),
         })
         .unwrap();
@@ -158,12 +158,12 @@ mod tests {
     #[test]
     fn conversation_includes_both_directions_and_excludes_third_participant() {
         let chat = sample_chat();
-        for (user_id, other_user_id) in [(1, 2), (2, 1)] {
+        for (user_id, other_user_id) in [("alice", "bob"), ("bob", "alice")] {
             let results = conversation(
                 &chat,
                 &ConversationQuery {
-                    user_id,
-                    other_user_id,
+                    user_id: user_id.to_owned(),
+                    other_user_id: other_user_id.to_owned(),
                 },
             )
             .unwrap();
@@ -174,23 +174,27 @@ mod tests {
     #[test]
     fn empty_history_still_validates_users_and_conversation_participants() {
         let chat = ChatService::new();
-        assert!(history(&chat, &query(Some(1), None)).unwrap().is_empty());
+        assert!(
+            history(&chat, &query(Some("alice"), None))
+                .unwrap()
+                .is_empty()
+        );
         assert_eq!(
-            history(&chat, &query(Some(99), None)),
+            history(&chat, &query(Some("unknown"), None)),
             Err(ChatError::UnknownUser)
         );
         for (user_id, other_user_id, expected) in [
-            (99, 2, ChatError::UnknownUser),
-            (1, 99, ChatError::UnknownUser),
-            (99, 99, ChatError::UnknownUser),
-            (1, 1, ChatError::SameUser),
+            ("unknown", "bob", ChatError::UnknownUser),
+            ("alice", "unknown", ChatError::UnknownUser),
+            ("unknown", "unknown", ChatError::UnknownUser),
+            ("alice", "alice", ChatError::SameUser),
         ] {
             assert_eq!(
                 conversation(
                     &chat,
                     &ConversationQuery {
-                        user_id,
-                        other_user_id
+                        user_id: user_id.to_owned(),
+                        other_user_id: other_user_id.to_owned()
                     }
                 ),
                 Err(expected)
@@ -200,8 +204,8 @@ mod tests {
             conversation(
                 &chat,
                 &ConversationQuery {
-                    user_id: 1,
-                    other_user_id: 2
+                    user_id: "alice".to_owned(),
+                    other_user_id: "bob".to_owned()
                 }
             )
             .unwrap()

@@ -16,7 +16,7 @@ integrated. The documented Rust commands below work with the current repository.
 
 ## Features
 
-- Three simulated users: Alice, Bob, and Charlie
+- Three simulated users with shared IDs: `alice`, `bob`, and `charlie`
 - Direct messages with unique IDs and millisecond timestamps
 - Conversation history between two selected users
 - History filtering by participant
@@ -129,8 +129,8 @@ Example message request:
 
 ```json
 {
-  "sender_id": 1,
-  "recipient_id": 2,
+  "sender_id": "alice",
+  "recipient_id": "bob",
   "content": "Meeting at 3"
 }
 ```

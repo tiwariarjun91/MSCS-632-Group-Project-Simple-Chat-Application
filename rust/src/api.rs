@@ -94,7 +94,7 @@ impl From<JsonRejection> for ApiError {
             Self::new(
                 StatusCode::BAD_REQUEST,
                 ErrorCode::InvalidRequest,
-                "Provide valid JSON with integer sender_id and recipient_id and string content.",
+                "Provide valid JSON with string sender_id, recipient_id, and content fields.",
             )
         }
     }
@@ -180,8 +180,8 @@ mod tests {
         let (status, Json(response)) = send_message(
             State(handle.clone()),
             Ok(Json(SendMessageRequest {
-                sender_id: 1,
-                recipient_id: 2,
+                sender_id: "alice".to_owned(),
+                recipient_id: "bob".to_owned(),
                 content: "Meeting at 3".to_owned(),
             })),
         )
@@ -191,7 +191,7 @@ mod tests {
         let Json(found) = history(
             State(handle.clone()),
             Ok(Query(HistoryQuery {
-                user_id: Some(2),
+                user_id: Some("bob".to_owned()),
                 keyword: Some("meeting".to_owned()),
             })),
         )
@@ -208,8 +208,8 @@ mod tests {
         let error = send_message(
             State(handle.clone()),
             Ok(Json(SendMessageRequest {
-                sender_id: 1,
-                recipient_id: 1,
+                sender_id: "alice".to_owned(),
+                recipient_id: "alice".to_owned(),
                 content: "Invalid".to_owned(),
             })),
         )
