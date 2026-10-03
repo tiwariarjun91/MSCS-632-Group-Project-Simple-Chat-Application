@@ -67,6 +67,10 @@
     return state.users.find((user) => user.user_id === id)?.display_name || `User ${id}`;
   }
 
+  function messageCount(count) {
+    return `${count} ${count === 1 ? "message" : "messages"}`;
+  }
+
   function renderMessages(listId, emptyId, messages, emptyText, highlightSender) {
     const list = element(listId);
     const wasAtBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 40;
@@ -121,7 +125,7 @@
       renderMessages("conversation-messages", "conversation-empty", data.messages,
         "No messages yet. Start the conversation below.", sender);
       element("conversation-summary").textContent =
-        `${userName(sender)} ↔ ${userName(other)} · ${data.messages.length} message(s)`;
+        `${userName(sender)} ↔ ${userName(other)} · ${messageCount(data.messages.length)}`;
     } catch (error) {
       if (version === state.conversationVersion) throw error;
     }
@@ -137,7 +141,7 @@
       if (version !== state.historyVersion) return;
       renderMessages("history-messages", "history-empty", data.messages,
         "No messages match the current filters.");
-      element("history-status").textContent = `${data.messages.length} message(s) found`;
+      element("history-status").textContent = `${messageCount(data.messages.length)} found`;
     } catch (error) {
       if (version === state.historyVersion) throw error;
     }
