@@ -5,6 +5,10 @@
 # Rust build output
 rust/target/
 
+# Go build output
+go-backend/*.exe
+go-backend/*.out
+
 # Local logs and editor files
 *.log
 .idea/
