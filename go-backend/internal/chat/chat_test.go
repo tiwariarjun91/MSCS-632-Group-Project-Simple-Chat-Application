@@ -1,6 +1,9 @@
 package chat
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 func TestSendMessage(t *testing.T) {
 	service := NewChatService()
@@ -75,5 +78,53 @@ func TestInvalidMessage(t *testing.T) {
 
 	if len(service.GetMessages()) != 0 {
 		t.Errorf("invalid message should not be stored")
+	}
+}
+
+func TestConcurrentSendsAssignUniqueIDs(t *testing.T) {
+	const messageCount = 60
+	service := NewChatService()
+	errors := make(chan error, messageCount)
+	var workers sync.WaitGroup
+
+	for index := 0; index < messageCount; index++ {
+		workers.Add(1)
+		go func(index int) {
+			defer workers.Done()
+			sender, recipient := "alice", "bob"
+			if index%2 == 1 {
+				sender, recipient = recipient, sender
+			}
+			_, err := service.SendMessage(sender, recipient, "Concurrent message")
+			errors <- err
+		}(index)
+	}
+
+	workers.Wait()
+	close(errors)
+
+	for err := range errors {
+		if err != nil {
+			t.Fatalf("concurrent send failed: %v", err)
+		}
+	}
+
+	messages := service.GetMessages()
+	if len(messages) != messageCount {
+		t.Fatalf("expected %d stored messages, got %d", messageCount, len(messages))
+	}
+
+	seenIDs := make(map[uint64]bool, messageCount)
+	for _, message := range messages {
+		if seenIDs[message.MessageID] {
+			t.Fatalf("duplicate message ID %d", message.MessageID)
+		}
+		seenIDs[message.MessageID] = true
+	}
+
+	for expectedID := uint64(1); expectedID <= messageCount; expectedID++ {
+		if !seenIDs[expectedID] {
+			t.Errorf("missing message ID %d", expectedID)
+		}
 	}
 }

@@ -212,6 +212,16 @@ func (a *API) handleConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if userID == otherUserID {
+		writeError(
+			w,
+			http.StatusBadRequest,
+			"same_user",
+			"Choose two different users.",
+		)
+		return
+	}
+
 	messages := a.chatService.GetConversation(userID, otherUserID)
 
 	writeJSON(w, http.StatusOK, map[string]any{

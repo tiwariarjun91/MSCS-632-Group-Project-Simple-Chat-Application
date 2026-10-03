@@ -423,3 +423,53 @@ func TestGetMessagesRejectsUnknownUser(t *testing.T) {
 		)
 	}
 }
+
+func TestConversationValidation(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		expectedCode string
+	}{
+		{
+			name:         "missing participant",
+			path:         "/api/conversation?user_id=alice",
+			expectedCode: "invalid_request",
+		},
+		{
+			name:         "unknown participant",
+			path:         "/api/conversation?user_id=alice&other_user_id=unknown",
+			expectedCode: "unknown_user",
+		},
+		{
+			name:         "same participant",
+			path:         "/api/conversation?user_id=alice&other_user_id=alice",
+			expectedCode: "same_user",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, test.path, nil)
+			response := httptest.NewRecorder()
+			newTestHandler().ServeHTTP(response, request)
+
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d", response.Code)
+			}
+
+			var body struct {
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
+			}
+
+			if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+				t.Fatalf("failed to decode response: %v", err)
+			}
+
+			if body.Error.Code != test.expectedCode {
+				t.Errorf("expected error code %q, got %q", test.expectedCode, body.Error.Code)
+			}
+		})
+	}
+}
