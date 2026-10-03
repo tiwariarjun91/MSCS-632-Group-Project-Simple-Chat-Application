@@ -190,7 +190,6 @@ func TestGetConversation(t *testing.T) {
 	}
 }
 
-
 func TestFilterMessages(t *testing.T) {
 	handler := newTestHandler()
 
@@ -255,6 +254,68 @@ func TestFilterMessages(t *testing.T) {
 			t.Errorf(
 				"unexpected filtered message: %+v",
 				message,
+			)
+		}
+	}
+}
+
+func TestRunSimulation(t *testing.T) {
+	handler := newTestHandler()
+
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/simulation",
+		nil,
+	)
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	var body struct {
+		AcceptedCount int            `json:"accepted_count"`
+		Messages      []chat.Message `json:"messages"`
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if body.AcceptedCount != 6 {
+		t.Errorf(
+			"expected 6 accepted messages, got %d",
+			body.AcceptedCount,
+		)
+	}
+
+	if len(body.Messages) != 6 {
+		t.Fatalf(
+			"expected 6 simulation messages, got %d",
+			len(body.Messages),
+		)
+	}
+
+	seenIDs := make(map[uint64]bool)
+
+	for _, message := range body.Messages {
+		if seenIDs[message.MessageID] {
+			t.Errorf(
+				"duplicate message ID found: %d",
+				message.MessageID,
+			)
+		}
+
+		seenIDs[message.MessageID] = true
+	}
+
+	for expectedID := uint64(1); expectedID <= 6; expectedID++ {
+		if !seenIDs[expectedID] {
+			t.Errorf(
+				"expected message ID %d was not found",
+				expectedID,
 			)
 		}
 	}

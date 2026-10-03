@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/tiwariarjun91/MSCS-632-Group-Project-Simple-Chat-Application/go-backend/internal/chat"
@@ -107,12 +108,40 @@ func (a *API) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		writeError(
-			w,
-			http.StatusBadRequest,
-			"invalid_request",
-			err.Error(),
-		)
+		switch {
+		case errors.Is(err, chat.ErrUnknownUser):
+			writeError(
+				w,
+				http.StatusBadRequest,
+				"unknown_user",
+				err.Error(),
+			)
+
+		case errors.Is(err, chat.ErrSameUser):
+			writeError(
+				w,
+				http.StatusBadRequest,
+				"same_user",
+				err.Error(),
+			)
+
+		case errors.Is(err, chat.ErrEmptyContent):
+			writeError(
+				w,
+				http.StatusBadRequest,
+				"empty_content",
+				err.Error(),
+			)
+
+		default:
+			writeError(
+				w,
+				http.StatusInternalServerError,
+				"internal_error",
+				"The backend could not complete the request.",
+			)
+		}
+
 		return
 	}
 

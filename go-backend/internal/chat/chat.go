@@ -1,11 +1,18 @@
 package chat
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+)
+
+var (
+	ErrUnknownUser  = errors.New("unknown user")
+	ErrSameUser     = errors.New("sender and recipient cannot be the same")
+	ErrEmptyContent = errors.New("message cannot be blank")
 )
 
 // ChatService manages users and message history for the application.
@@ -55,22 +62,28 @@ func (s *ChatService) GetUsers() []User {
 	return users
 }
 
+// UserExists reports whether a user is registered in the chat service.
+func (s *ChatService) UserExists(userID string) bool {
+	_, exists := s.users[userID]
+	return exists
+}
+
 // ValidateMessage checks whether a message can be sent.
 func (s *ChatService) ValidateMessage(senderID, recipientID, content string) error {
-	if _, exists := s.users[senderID]; !exists {
-		return fmt.Errorf("unknown sender: %s", senderID)
+	if !s.UserExists(senderID) {
+		return fmt.Errorf("%w: %s", ErrUnknownUser, senderID)
 	}
 
-	if _, exists := s.users[recipientID]; !exists {
-		return fmt.Errorf("unknown recipient: %s", recipientID)
+	if !s.UserExists(recipientID) {
+		return fmt.Errorf("%w: %s", ErrUnknownUser, recipientID)
 	}
 
 	if senderID == recipientID {
-		return fmt.Errorf("sender and recipient cannot be the same")
+		return ErrSameUser
 	}
 
 	if strings.TrimSpace(content) == "" {
-		return fmt.Errorf("message cannot be blank")
+		return ErrEmptyContent
 	}
 
 	return nil
