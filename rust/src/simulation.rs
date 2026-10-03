@@ -99,11 +99,17 @@ mod tests {
             result.messages,
             handle.history(HistoryQuery::default()).await.unwrap()
         );
-        let ids: Vec<_> = result.messages.iter().map(|message| message.message_id).collect();
+        let ids: Vec<_> = result
+            .messages
+            .iter()
+            .map(|message| message.message_id)
+            .collect();
         assert_eq!(ids, vec![1, 2, 3, 4, 5, 6]);
 
         for (sender_id, recipient_id, name) in [(1, 2, "Alice"), (2, 3, "Bob"), (3, 1, "Charlie")] {
-            let sent: Vec<_> = result.messages.iter()
+            let sent: Vec<_> = result
+                .messages
+                .iter()
                 .filter(|message| message.sender_id == sender_id)
                 .collect();
             assert_eq!(sent.len(), 2);
@@ -121,11 +127,14 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn overlapping_and_repeated_runs_preserve_history_and_separate_results() {
         let (handle, worker) = worker::start();
-        let original = handle.send(SendMessageRequest {
-            sender_id: 1,
-            recipient_id: 2,
-            content: "Existing message".to_owned(),
-        }).await.unwrap();
+        let original = handle
+            .send(SendMessageRequest {
+                sender_id: 1,
+                recipient_id: 2,
+                content: "Existing message".to_owned(),
+            })
+            .await
+            .unwrap();
 
         let (first, second, normal) = tokio::join!(
             run(&handle),
@@ -144,8 +153,12 @@ mod tests {
         for result in [first, second, third] {
             assert_eq!(result.accepted_count, 6);
             assert_eq!(result.messages.len(), 6);
-            assert!(result.messages.windows(2)
-                .all(|pair| pair[0].message_id < pair[1].message_id));
+            assert!(
+                result
+                    .messages
+                    .windows(2)
+                    .all(|pair| pair[0].message_id < pair[1].message_id)
+            );
             expected.extend(result.messages);
         }
         expected.sort_by_key(|message| message.message_id);

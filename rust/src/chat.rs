@@ -207,7 +207,10 @@ mod tests {
     fn id_exhaustion_does_not_store_a_message() {
         let mut chat = ChatService::new();
         chat.next_message_id = u64::MAX;
-        assert_eq!(chat.send(request(1, 2, "Hello")), Err(ChatError::IdExhausted));
+        assert_eq!(
+            chat.send(request(1, 2, "Hello")),
+            Err(ChatError::IdExhausted)
+        );
         assert!(chat.history().is_empty());
     }
 }

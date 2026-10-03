@@ -47,7 +47,8 @@ pub fn conversation(
         .iter()
         .filter(|message| {
             (message.sender_id == query.user_id && message.recipient_id == query.other_user_id)
-                || (message.sender_id == query.other_user_id && message.recipient_id == query.user_id)
+                || (message.sender_id == query.other_user_id
+                    && message.recipient_id == query.user_id)
         })
         .cloned()
         .collect())
@@ -111,16 +112,27 @@ mod tests {
         assert_eq!(ids(&results), vec![1, 3]);
         let combined = history(&chat, &query(Some(2), Some("meeting"))).unwrap();
         assert_eq!(ids(&combined), vec![1]);
-        assert!(history(&chat, &query(None, Some("missing"))).unwrap().is_empty());
+        assert!(
+            history(&chat, &query(None, Some("missing")))
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
     fn empty_keyword_adds_no_restriction_and_whitespace_is_literal() {
         let chat = sample_chat();
-        assert_eq!(history(&chat, &query(None, Some(""))).unwrap(), chat.history());
+        assert_eq!(
+            history(&chat, &query(None, Some(""))).unwrap(),
+            chat.history()
+        );
         let results = history(&chat, &query(None, Some("Meeting "))).unwrap();
         assert_eq!(ids(&results), vec![1, 3]);
-        assert!(history(&chat, &query(None, Some(" meeting"))).unwrap().is_empty());
+        assert!(
+            history(&chat, &query(None, Some(" meeting")))
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -132,15 +144,29 @@ mod tests {
             content: "CAFÉ".to_owned(),
         })
         .unwrap();
-        assert_eq!(ids(&history(&chat, &query(None, Some("cafÉ"))).unwrap()), vec![1]);
-        assert!(history(&chat, &query(None, Some("café"))).unwrap().is_empty());
+        assert_eq!(
+            ids(&history(&chat, &query(None, Some("cafÉ"))).unwrap()),
+            vec![1]
+        );
+        assert!(
+            history(&chat, &query(None, Some("café")))
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
     fn conversation_includes_both_directions_and_excludes_third_participant() {
         let chat = sample_chat();
         for (user_id, other_user_id) in [(1, 2), (2, 1)] {
-            let results = conversation(&chat, &ConversationQuery { user_id, other_user_id }).unwrap();
+            let results = conversation(
+                &chat,
+                &ConversationQuery {
+                    user_id,
+                    other_user_id,
+                },
+            )
+            .unwrap();
             assert_eq!(ids(&results), vec![1, 2]);
         }
     }
@@ -149,7 +175,10 @@ mod tests {
     fn empty_history_still_validates_users_and_conversation_participants() {
         let chat = ChatService::new();
         assert!(history(&chat, &query(Some(1), None)).unwrap().is_empty());
-        assert_eq!(history(&chat, &query(Some(99), None)), Err(ChatError::UnknownUser));
+        assert_eq!(
+            history(&chat, &query(Some(99), None)),
+            Err(ChatError::UnknownUser)
+        );
         for (user_id, other_user_id, expected) in [
             (99, 2, ChatError::UnknownUser),
             (1, 99, ChatError::UnknownUser),
@@ -157,12 +186,26 @@ mod tests {
             (1, 1, ChatError::SameUser),
         ] {
             assert_eq!(
-                conversation(&chat, &ConversationQuery { user_id, other_user_id }),
+                conversation(
+                    &chat,
+                    &ConversationQuery {
+                        user_id,
+                        other_user_id
+                    }
+                ),
                 Err(expected)
             );
         }
-        assert!(conversation(&chat, &ConversationQuery { user_id: 1, other_user_id: 2 })
+        assert!(
+            conversation(
+                &chat,
+                &ConversationQuery {
+                    user_id: 1,
+                    other_user_id: 2
+                }
+            )
             .unwrap()
-            .is_empty());
+            .is_empty()
+        );
     }
 }

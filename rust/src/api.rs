@@ -11,8 +11,8 @@ use axum::{Json, Router};
 
 use crate::chat::ChatError;
 use crate::models::{
-    ConversationQuery, ErrorCode, ErrorDetail, ErrorResponse, HistoryQuery,
-    MessageResponse, MessagesResponse, SendMessageRequest, SimulationResponse, UsersResponse,
+    ConversationQuery, ErrorCode, ErrorDetail, ErrorResponse, HistoryQuery, MessageResponse,
+    MessagesResponse, SendMessageRequest, SimulationResponse, UsersResponse,
 };
 use crate::simulation;
 use crate::worker::{ChatHandle, WorkerError};
@@ -39,7 +39,11 @@ struct ApiError {
 
 impl ApiError {
     fn new(status: StatusCode, code: ErrorCode, message: impl Into<String>) -> Self {
-        Self { status, code, message: message.into() }
+        Self {
+            status,
+            code,
+            message: message.into(),
+        }
     }
 
     fn internal() -> Self {
@@ -53,19 +57,25 @@ impl ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        (self.status, Json(ErrorResponse {
-            error: ErrorDetail { code: self.code, message: self.message },
-        })).into_response()
+        (
+            self.status,
+            Json(ErrorResponse {
+                error: ErrorDetail {
+                    code: self.code,
+                    message: self.message,
+                },
+            }),
+        )
+            .into_response()
     }
 }
 
 impl From<WorkerError> for ApiError {
     fn from(error: WorkerError) -> Self {
         match error {
-            WorkerError::Chat(error @ (ChatError::UnknownUser
-                | ChatError::SameUser | ChatError::EmptyContent)) => {
-                Self::new(StatusCode::BAD_REQUEST, error.code(), error.to_string())
-            }
+            WorkerError::Chat(
+                error @ (ChatError::UnknownUser | ChatError::SameUser | ChatError::EmptyContent),
+            ) => Self::new(StatusCode::BAD_REQUEST, error.code(), error.to_string()),
             // Keep operational details out of browser responses.
             _ => Self::internal(),
         }
@@ -101,7 +111,9 @@ impl From<QueryRejection> for ApiError {
 }
 
 async fn users(State(handle): State<ChatHandle>) -> Result<Json<UsersResponse>, ApiError> {
-    Ok(Json(UsersResponse { users: handle.users().await? }))
+    Ok(Json(UsersResponse {
+        users: handle.users().await?,
+    }))
 }
 
 async fn send_message(
@@ -118,7 +130,9 @@ async fn history(
     query: Result<Query<HistoryQuery>, QueryRejection>,
 ) -> Result<Json<MessagesResponse>, ApiError> {
     let Query(query) = query?;
-    Ok(Json(MessagesResponse { messages: handle.history(query).await? }))
+    Ok(Json(MessagesResponse {
+        messages: handle.history(query).await?,
+    }))
 }
 
 async fn conversation(
@@ -126,18 +140,24 @@ async fn conversation(
     query: Result<Query<ConversationQuery>, QueryRejection>,
 ) -> Result<Json<MessagesResponse>, ApiError> {
     let Query(query) = query?;
-    Ok(Json(MessagesResponse { messages: handle.conversation(query).await? }))
+    Ok(Json(MessagesResponse {
+        messages: handle.conversation(query).await?,
+    }))
 }
 
-async fn simulate(
-    State(handle): State<ChatHandle>,
-) -> Result<Json<SimulationResponse>, ApiError> {
-    let result = simulation::run(&handle).await.map_err(|_| ApiError::internal())?;
+async fn simulate(State(handle): State<ChatHandle>) -> Result<Json<SimulationResponse>, ApiError> {
+    let result = simulation::run(&handle)
+        .await
+        .map_err(|_| ApiError::internal())?;
     Ok(Json(result))
 }
 
 async fn not_found() -> ApiError {
-    ApiError::new(StatusCode::NOT_FOUND, ErrorCode::NotFound, "API route not found.")
+    ApiError::new(
+        StatusCode::NOT_FOUND,
+        ErrorCode::NotFound,
+        "API route not found.",
+    )
 }
 
 async fn method_not_allowed() -> ApiError {
@@ -151,8 +171,8 @@ async fn method_not_allowed() -> ApiError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::body::to_bytes;
     use crate::worker;
+    use axum::body::to_bytes;
 
     #[tokio::test]
     async fn accepted_message_is_created_and_available_to_history_handler() {
@@ -160,14 +180,23 @@ mod tests {
         let (status, Json(response)) = send_message(
             State(handle.clone()),
             Ok(Json(SendMessageRequest {
-                sender_id: 1, recipient_id: 2, content: "Meeting at 3".to_owned(),
+                sender_id: 1,
+                recipient_id: 2,
+                content: "Meeting at 3".to_owned(),
             })),
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
         assert_eq!(status, StatusCode::CREATED);
         let Json(found) = history(
             State(handle.clone()),
-            Ok(Query(HistoryQuery { user_id: Some(2), keyword: Some("meeting".to_owned()) })),
-        ).await.unwrap();
+            Ok(Query(HistoryQuery {
+                user_id: Some(2),
+                keyword: Some("meeting".to_owned()),
+            })),
+        )
+        .await
+        .unwrap();
         assert_eq!(found.messages, vec![response.message]);
         drop(handle);
         worker.await.unwrap();
@@ -179,15 +208,26 @@ mod tests {
         let error = send_message(
             State(handle.clone()),
             Ok(Json(SendMessageRequest {
-                sender_id: 1, recipient_id: 1, content: "Invalid".to_owned(),
+                sender_id: 1,
+                recipient_id: 1,
+                content: "Invalid".to_owned(),
             })),
-        ).await.unwrap_err().into_response();
+        )
+        .await
+        .unwrap_err()
+        .into_response();
         assert_eq!(error.status(), StatusCode::BAD_REQUEST);
         assert_eq!(error.headers()["content-type"], "application/json");
         let body = to_bytes(error.into_body(), 4096).await.unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["error"]["code"], "same_user");
-        assert!(handle.history(HistoryQuery::default()).await.unwrap().is_empty());
+        assert!(
+            handle
+                .history(HistoryQuery::default())
+                .await
+                .unwrap()
+                .is_empty()
+        );
         drop(handle);
         worker.await.unwrap();
     }

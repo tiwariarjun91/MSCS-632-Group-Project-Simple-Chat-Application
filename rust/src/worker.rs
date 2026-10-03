@@ -86,7 +86,8 @@ impl ChatHandle {
         &self,
         query: ConversationQuery,
     ) -> Result<Vec<Message>, WorkerError> {
-        self.request(|reply| Command::Conversation(query, reply)).await
+        self.request(|reply| Command::Conversation(query, reply))
+            .await
     }
 }
 
@@ -141,7 +142,10 @@ mod tests {
         for index in 0..100 {
             let client = handle.clone();
             senders.spawn(async move {
-                client.send(message(1, 2, &format!("Message {index}"))).await.unwrap()
+                client
+                    .send(message(1, 2, &format!("Message {index}")))
+                    .await
+                    .unwrap()
             });
         }
 
@@ -170,15 +174,21 @@ mod tests {
         );
         let accepted = handle.send(message(1, 2, "Meeting at 3")).await.unwrap();
         assert_eq!(accepted.message_id, 1);
-        let filtered = handle.history(HistoryQuery {
-            user_id: Some(2),
-            keyword: Some("meeting".to_owned()),
-        }).await.unwrap();
+        let filtered = handle
+            .history(HistoryQuery {
+                user_id: Some(2),
+                keyword: Some("meeting".to_owned()),
+            })
+            .await
+            .unwrap();
         assert_eq!(filtered, vec![accepted.clone()]);
-        let conversation = handle.conversation(ConversationQuery {
-            user_id: 2,
-            other_user_id: 1,
-        }).await.unwrap();
+        let conversation = handle
+            .conversation(ConversationQuery {
+                user_id: 2,
+                other_user_id: 1,
+            })
+            .await
+            .unwrap();
         assert_eq!(conversation, vec![accepted]);
 
         drop(handle);
@@ -198,12 +208,21 @@ mod tests {
         let (handle, worker) = start();
         let (abandoned_reply, abandoned_response) = oneshot::channel();
         drop(abandoned_response);
-        handle.sender.send(Command::Send(
-            message(1, 2, "Caller disconnected"), abandoned_reply,
-        )).await.unwrap();
+        handle
+            .sender
+            .send(Command::Send(
+                message(1, 2, "Caller disconnected"),
+                abandoned_reply,
+            ))
+            .await
+            .unwrap();
 
         let (reply, response) = oneshot::channel();
-        handle.sender.send(Command::History(HistoryQuery::default(), reply)).await.unwrap();
+        handle
+            .sender
+            .send(Command::History(HistoryQuery::default(), reply))
+            .await
+            .unwrap();
         drop(handle);
         worker.await.unwrap();
 

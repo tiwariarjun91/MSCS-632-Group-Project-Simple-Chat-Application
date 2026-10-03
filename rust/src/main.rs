@@ -10,10 +10,10 @@ mod worker;
 use std::error::Error;
 use std::path::PathBuf;
 
+use axum::Json;
 use axum::extract::Request;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
@@ -47,7 +47,11 @@ async fn frontend(request: Request) -> Response {
         Ok(response) => response.into_response(),
         Err(error) => {
             eprintln!("Unable to serve frontend asset: {error}");
-            (StatusCode::INTERNAL_SERVER_ERROR, "Unable to load this file.").into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Unable to load this file.",
+            )
+                .into_response()
         }
     }
 }
