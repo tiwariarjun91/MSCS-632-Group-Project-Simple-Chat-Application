@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -11,6 +12,7 @@ type ChatService struct {
 	users         map[string]User
 	messages      []Message
 	nextMessageID uint64
+	mu            sync.RWMutex
 }
 
 // NewChatService creates a chat service with the default users.
@@ -75,6 +77,9 @@ func (s *ChatService) SendMessage(senderID, recipientID, content string) (Messag
 		return Message{}, err
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	message := Message{
 		MessageID:   s.nextMessageID,
 		SenderID:    senderID,
@@ -91,5 +96,11 @@ func (s *ChatService) SendMessage(senderID, recipientID, content string) (Messag
 
 // GetMessages returns the stored message history.
 func (s *ChatService) GetMessages() []Message {
-	return s.messages
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	messages := make([]Message, len(s.messages))
+	copy(messages, s.messages)
+
+	return messages
 }
