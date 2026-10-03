@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ChatService manages users and message history for the application.
 type ChatService struct {
-	users    map[string]User
-	messages []Message
+	users         map[string]User
+	messages      []Message
+	nextMessageID uint64
 }
 
 // NewChatService creates a chat service with the default users.
@@ -29,8 +31,9 @@ func NewChatService() *ChatService {
 	}
 
 	return &ChatService{
-		users:    users,
-		messages: make([]Message, 0),
+		users:         users,
+		messages:      make([]Message, 0),
+		nextMessageID: 1,
 	}
 }
 
@@ -64,4 +67,29 @@ func (s *ChatService) ValidateMessage(senderID, recipientID, content string) err
 	}
 
 	return nil
+}
+
+// SendMessage validates and stores a new message.
+func (s *ChatService) SendMessage(senderID, recipientID, content string) (Message, error) {
+	if err := s.ValidateMessage(senderID, recipientID, content); err != nil {
+		return Message{}, err
+	}
+
+	message := Message{
+		MessageID:   s.nextMessageID,
+		SenderID:    senderID,
+		RecipientID: recipientID,
+		Content:     content,
+		TimestampMS: time.Now().UnixMilli(),
+	}
+
+	s.messages = append(s.messages, message)
+	s.nextMessageID++
+
+	return message, nil
+}
+
+// GetMessages returns the stored message history.
+func (s *ChatService) GetMessages() []Message {
+	return s.messages
 }
