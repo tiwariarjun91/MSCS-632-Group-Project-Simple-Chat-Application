@@ -19,7 +19,7 @@ func (s *ChatService) GetConversation(userID, otherUserID string) []Message {
 // FilterMessages returns messages matching the optional user and keyword filters.
 func (s *ChatService) FilterMessages(userID, keyword string) []Message {
 	messages := make([]Message, 0)
-	keyword = strings.ToLower(strings.TrimSpace(keyword))
+	keyword = strings.ToLower(keyword)
 
 	for _, message := range s.GetMessages() {
 		matchesUser := userID == "" ||
