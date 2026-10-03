@@ -2,36 +2,21 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 )
 
+const address = "127.0.0.1:8080"
+
 func main() {
-	fmt.Println("Simple Chat Application - Go Backend")
-
 	chatService := NewChatService()
+	api := NewAPI(chatService)
 
-	users := chatService.GetUsers()
+	fmt.Printf("Go chat backend: http://%s\n", address)
+	fmt.Printf("Users API: http://%s/api/users\n", address)
+	fmt.Println("Press Ctrl+C to stop. Message history lasts only for this session.")
 
-	// Go does not guarantee map iteration order
-	for _, user := range users {
-		fmt.Printf("User: %s (%s)\n", user.DisplayName, user.UserID)
-	}
-
-	//To be deleted
-	messages, err := chatService.RunSimulation()
-	if err != nil {
-		fmt.Println("Simulation failed:", err)
-		return
-	}
-
-	fmt.Println("Simulation complete:")
-
-	for _, message := range messages {
-		fmt.Printf(
-			"Message %d: %s -> %s: %s\n",
-			message.MessageID,
-			message.SenderID,
-			message.RecipientID,
-			message.Content,
-		)
+	if err := http.ListenAndServe(address, api.Routes()); err != nil {
+		log.Fatal(err)
 	}
 }
