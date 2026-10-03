@@ -2,52 +2,64 @@ package main
 
 import "sort"
 
-// simulationMessage represents one message to send during the simulation.
-type simulationMessage struct {
+// simulationUser represents one user participating in the simulation.
+type simulationUser struct {
 	senderID    string
 	recipientID string
-	content     string
+	messages    []string
 }
 
-// simulationResult carries the result of a goroutine back through a channel.
+// simulationResult carries a message or error from a goroutine.
 type simulationResult struct {
 	message Message
 	err     error
 }
 
-// RunSimulation sends messages concurrently using goroutines and channels.
+// RunSimulation runs three users concurrently.
+// Each user sends two messages sequentially.
 func (s *ChatService) RunSimulation() ([]Message, error) {
-	requests := []simulationMessage{
-		{senderID: "alice", recipientID: "bob", content: "Hi Bob"},
-		{senderID: "alice", recipientID: "bob", content: "Meeting at 3"},
-		{senderID: "bob", recipientID: "charlie", content: "Hi Charlie"},
-		{senderID: "bob", recipientID: "charlie", content: "How are you?"},
-		{senderID: "charlie", recipientID: "alice", content: "Hi Alice"},
-		{senderID: "charlie", recipientID: "alice", content: "See you later"},
+	users := []simulationUser{
+		{
+			senderID:    "alice",
+			recipientID: "bob",
+			messages:    []string{"Simulation Alice 1", "Simulation Alice 2"},
+		},
+		{
+			senderID:    "bob",
+			recipientID: "charlie",
+			messages:    []string{"Simulation Bob 1", "Simulation Bob 2"},
+		},
+		{
+			senderID:    "charlie",
+			recipientID: "alice",
+			messages:    []string{"Simulation Charlie 1", "Simulation Charlie 2"},
+		},
 	}
 
-	results := make(chan simulationResult, len(requests))
+	results := make(chan simulationResult, 6)
 
-	for _, request := range requests {
-		request := request
+	for _, user := range users {
+		user := user
 
 		go func() {
-			message, err := s.SendMessage(
-				request.senderID,
-				request.recipientID,
-				request.content,
-			)
+			for _, content := range user.messages {
+				message, err := s.SendMessage(
+					user.senderID,
+					user.recipientID,
+					content,
+				)
 
-			results <- simulationResult{
-				message: message,
-				err:     err,
+				results <- simulationResult{
+					message: message,
+					err:     err,
+				}
 			}
 		}()
 	}
 
-	messages := make([]Message, 0, len(requests))
+	messages := make([]Message, 0, 6)
 
-	for range requests {
+	for i := 0; i < 6; i++ {
 		result := <-results
 
 		if result.err != nil {
