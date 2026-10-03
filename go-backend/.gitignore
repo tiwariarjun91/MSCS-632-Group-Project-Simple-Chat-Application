@@ -1,0 +1,9 @@
+# Rust build output
+rust/target/
+
+# Go build output
+go-backend/*.exe
+go-backend/*.out
+
+# macOS
+.DS_Store

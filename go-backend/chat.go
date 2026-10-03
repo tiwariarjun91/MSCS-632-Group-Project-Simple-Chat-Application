@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"strings"
+)
+
 // ChatService manages users and message history for the application.
 type ChatService struct {
 	users    map[string]User
@@ -38,4 +43,25 @@ func (s *ChatService) GetUsers() []User {
 	}
 
 	return users
+}
+
+// ValidateMessage checks whether a message can be sent.
+func (s *ChatService) ValidateMessage(senderID, recipientID, content string) error {
+	if _, exists := s.users[senderID]; !exists {
+		return fmt.Errorf("unknown sender: %s", senderID)
+	}
+
+	if _, exists := s.users[recipientID]; !exists {
+		return fmt.Errorf("unknown recipient: %s", recipientID)
+	}
+
+	if senderID == recipientID {
+		return fmt.Errorf("sender and recipient cannot be the same")
+	}
+
+	if strings.TrimSpace(content) == "" {
+		return fmt.Errorf("message cannot be blank")
+	}
+
+	return nil
 }
