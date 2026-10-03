@@ -158,7 +158,6 @@
 
   async function initialize() {
     clearError();
-    element("refresh-conversation").disabled = true;
     connection.textContent = "Connecting to local chat…";
     try {
       const data = await api("/api/users");
@@ -181,8 +180,6 @@
     } catch (error) {
       setConnection(false);
       showError(error.message);
-    } finally {
-      element("refresh-conversation").disabled = false;
     }
   }
 
@@ -203,10 +200,6 @@
     changeConversation();
   });
   recipient.addEventListener("change", changeConversation);
-  element("refresh-conversation").addEventListener("click", () => {
-    if (state.ready) void refresh();
-    else void initialize();
-  });
 
   element("message-form").addEventListener("submit", async (event) => {
     event.preventDefault();
