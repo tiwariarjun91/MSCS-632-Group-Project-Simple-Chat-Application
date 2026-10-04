@@ -21,6 +21,9 @@ changing the user experience.
 
 ```text
 .
+├── docs/
+│   ├── MSCS_632_Final_Comparison_Report.pdf
+│   └── MSCS_632_Project_Presentation.pptx
 ├── frontend/
 │   ├── index.html       Shared browser interface
 │   ├── styles.css       Responsive presentation
@@ -52,6 +55,15 @@ changing the user experience.
             ├── simulation.go Concurrent chat simulation
             └── chat_test.go  Chat service tests
 ```
+
+## Documentation
+
+- [Final comparison report](docs/MSCS_632_Final_Comparison_Report.pdf)
+  — written analysis of the Rust and Go implementations, including language
+  features, concurrency, memory management, testing, and implementation tradeoffs.
+- [Project presentation](docs/MSCS_632_Project_Presentation.pptx)
+  — presentation slides demonstrating the application and comparing the two
+  implementations.
 
 ## Rust prerequisites
 
